@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Closing the Attack Paths · Salesforce Security Response</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;500;600;700;800;900&family=Poppins:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --sky:#cfeeff;--sky-2:#eaf8ff;--navy:#083b72;--navy-2:#0c4d8b;
+    --cyan:#08a4dc;--cyan-2:#36c1ed;--purple:#5b57e8;--purple-2:#7773f2;
+    --white:#fff;--ink:#163e67;--muted:#547594;--line:#b8ddeb;
+    --red:#c92a2a;--red-bg:#fff0f0;--green:#21865f;--green-bg:#e7f8f0;--amber:#b76500;--amber-bg:#fff5df;
+    --shadow:0 7px 0 rgba(8,59,114,.14),0 18px 38px rgba(25,83,122,.25),inset 0 1px 0 rgba(255,255,255,.94);
+    --shadow-lg:0 10px 0 rgba(8,59,114,.16),0 28px 56px rgba(25,83,122,.3),inset 0 1px 0 rgba(255,255,255,.96);
+    --shadow-hover:0 14px 0 rgba(8,59,114,.16),0 34px 64px rgba(25,83,122,.34),0 0 0 3px rgba(8,164,220,.22),0 0 34px rgba(54,193,237,.72),inset 0 1px 0 rgba(255,255,255,.98);
+    --round:20px;--pill:999px;font-family:'Nunito Sans',system-ui,sans-serif;
+  }
+  html{scroll-behavior:smooth;scroll-snap-type:y proximity}
+  body{min-height:100vh;color:var(--ink);background:var(--sky);overflow-x:hidden;font-family:'Nunito Sans',sans-serif}
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-2;
+    background-image:url("assets/aurora.png");
+    background-size:cover;background-position:center;
+    animation:auroraDrift 28s ease-in-out infinite alternate;
+  }
+  @keyframes auroraDrift{from{transform:scale(1)}to{transform:scale(1.06)}}
+  .topbar{position:sticky;top:0;z-index:50;min-height:68px;padding:9px 24px;display:flex;align-items:center;gap:18px;background:rgba(230,247,255,.92);backdrop-filter:blur(13px);border-bottom:1px solid rgba(8,59,114,.12)}
+  .brand{display:flex;align-items:center;gap:12px;flex-shrink:0}.brand-mark{height:40px;display:flex;align-items:center}.brand-mark img{height:40px;width:auto;display:block}
+  .brand-copy{line-height:1.05}.brand-top{display:block;font-size:9px;font-weight:900;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}.brand-name{display:block;font:700 16px 'Poppins',sans-serif;color:var(--navy)}
+  .nav{display:flex;align-items:center;gap:7px;margin-left:auto}.nav a{text-decoration:none;padding:8px 14px;border-radius:var(--pill);background:var(--white);border:1px solid rgba(8,59,114,.12);color:var(--navy);font-size:11px;font-weight:900;box-shadow:0 3px 9px rgba(25,83,122,.08);white-space:nowrap;transition:.2s}.nav a:hover{color:var(--white);background:var(--purple);transform:translateY(-1px)}.nav a.active{color:white;background:linear-gradient(135deg,var(--purple),var(--navy));border-color:transparent;box-shadow:0 5px 0 rgba(8,59,114,.22),0 10px 20px rgba(25,83,122,.24);transform:translateY(-2px)}
+  .progress{position:fixed;top:67px;left:0;z-index:60;height:3px;width:0;background:linear-gradient(90deg,var(--cyan),var(--purple));box-shadow:0 0 10px var(--cyan)}
+  .page{max-width:1500px;margin:0 auto;padding:0 38px 52px}.scene{position:relative;min-height:calc(100vh - 68px);padding:38px 0;display:flex;flex-direction:column;justify-content:center;scroll-snap-align:start;scroll-margin-top:78px}
+  .title-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.title-row h1{max-width:1160px;font:700 clamp(38px,4.8vw,70px)/1.04 'Poppins',sans-serif;color:var(--navy);letter-spacing:-.04em}.title-row .shield{width:68px;height:68px;color:var(--navy)}
+  .astro{position:absolute;z-index:4;pointer-events:none;user-select:none;object-fit:contain}
+  .astro-hero{top:0;right:0;width:190px;animation:astroFloat 4.8s ease-in-out infinite}
+  @keyframes astroFloat{
+    0%,100%{transform:translateY(0) rotate(4deg) scale(1);filter:drop-shadow(0 14px 16px rgba(8,59,114,.22))}
+    50%{transform:translateY(-18px) rotate(0deg) scale(1.07);filter:drop-shadow(0 22px 28px rgba(8,164,220,.55))}
+  }
+  .astro-close{width:170px;right:24px;bottom:34px;filter:drop-shadow(0 18px 20px rgba(8,59,114,.22))}
+  #shift .title-row,#shift>.subtitle{padding-right:190px}
+  #architecture .title-row h1{font-size:clamp(36px,4vw,56px)}
+  #architecture .subtitle{margin-top:10px}
+  .subtitle{margin-top:14px;max-width:1050px;font-size:23px;line-height:1.42;color:var(--cyan);font-weight:800}
+  .section-ribbon{display:flex;align-items:center;justify-content:center;min-height:64px;padding:12px 30px;border-radius:var(--pill);background:var(--cyan);color:white;font:700 clamp(20px,2vw,29px) 'Poppins',sans-serif;box-shadow:0 8px 0 rgba(8,59,114,.12),0 15px 28px rgba(8,164,220,.22)}.section-ribbon.purple{background:var(--purple)}
+  .hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:26px;margin-top:34px}.bubble-card,.risk-card,.layer,.takeaway,.question-card,.flow-card{background:rgba(255,255,255,.86);border-radius:var(--round);box-shadow:var(--shadow);transition:transform .28s cubic-bezier(.2,.8,.2,1),box-shadow .28s ease}
+  .bubble-card{padding:42px;position:relative}.bubble-label{display:inline-flex;padding:9px 21px;border-radius:var(--pill);background:var(--purple);color:white;font:700 15px 'Poppins',sans-serif}.bubble-card h2{margin-top:18px;font:700 clamp(28px,3vw,43px)/1.15 'Poppins',sans-serif;color:var(--navy)}.bubble-card p{margin-top:12px;font-size:19px;line-height:1.5;color:var(--muted)}
+  .path{display:grid;gap:15px}.path-step{display:grid;grid-template-columns:62px 1fr;gap:18px;align-items:center;padding:18px 22px;background:white;border-radius:19px;box-shadow:0 6px 17px rgba(25,83,122,.14)}.path-num{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;background:var(--navy);color:white;font:700 22px 'Poppins'}.path-step:nth-child(4) .path-num{background:var(--red)}.path-step b{display:block;font-size:19px;color:var(--navy)}.path-step span{font-size:15px;color:var(--muted);font-weight:700}
+  .risk-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:30px}.risk-card{padding:25px 20px;text-align:center;border-top:8px solid var(--cyan)}.risk-card:nth-child(2){border-top-color:var(--purple)}.risk-card:nth-child(3){border-top-color:var(--amber)}.risk-card:nth-child(4){border-top-color:var(--red)}.risk-icon{width:62px;height:62px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;background:var(--sky-2);color:var(--navy);font-size:27px}.risk-card h3{font:700 18px/1.25 'Poppins';color:var(--navy)}.risk-card p{margin-top:8px;font-size:13px;line-height:1.45;color:var(--muted);font-weight:700}
+  .layers{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-top:38px}.layer{position:relative;padding:32px 20px;text-align:center;min-height:270px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-bottom:10px solid var(--cyan)}.layer:nth-child(2){border-color:var(--purple)}.layer:nth-child(3){border-color:var(--green)}.layer:nth-child(4){border-color:var(--amber)}.layer:nth-child(5){border-color:var(--red)}.layer-num{width:68px;height:68px;margin:0 auto 20px;border-radius:20px;display:grid;place-items:center;background:var(--navy);color:white;font:700 21px 'Poppins'}.layer h3{font:700 20px/1.2 'Poppins';color:var(--navy)}.layer p{margin-top:11px;font-size:16px;line-height:1.4;color:var(--muted);font-weight:800}
+  .flow-card{margin-top:25px;padding:30px}.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;position:relative}.flow::before{content:"";position:absolute;left:10%;right:10%;top:32px;height:6px;border-radius:6px;background:linear-gradient(90deg,var(--cyan),var(--purple),var(--red))}.flow-step{position:relative;text-align:center}.flow-dot{position:relative;z-index:2;width:68px;height:68px;margin:auto;border:7px solid white;border-radius:50%;display:grid;place-items:center;background:var(--navy);color:white;font-weight:900;box-shadow:var(--shadow)}.flow-step:last-child .flow-dot{background:var(--red)}.flow-step h3{margin-top:14px;font:700 16px 'Poppins';color:var(--navy)}.flow-step p{margin-top:5px;font-size:12px;line-height:1.4;color:var(--muted);font-weight:700}
+  .callout{margin-top:30px;padding:21px 26px;border-radius:18px;background:var(--amber-bg);border-left:8px solid var(--amber);box-shadow:var(--shadow);font-size:21px;font-weight:900;color:var(--navy);text-align:center}
+  .takeaways{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-top:34px}.takeaway{padding:32px 18px;text-align:center}.takeaway strong{display:block;font:700 20px/1.2 'Poppins';color:var(--navy)}.takeaway span{display:block;margin-top:9px;font-size:15px;line-height:1.35;color:var(--muted);font-weight:800}
+  .question-card{position:relative;margin-top:34px;padding:42px 205px 42px 42px;text-align:center;background:linear-gradient(135deg,var(--purple),var(--navy));color:white;box-shadow:var(--shadow-lg)}.question-card h2{font:700 clamp(28px,3.3vw,48px)/1.16 'Poppins';color:white}.question-card p{margin:10px auto 0;max-width:880px;font-size:17px;line-height:1.55;color:rgba(255,255,255,.9)}.choice-row{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;margin-top:26px}.choice{padding:13px 20px;border-radius:var(--pill);background:white;color:var(--navy);font-weight:900;box-shadow:0 6px 0 rgba(0,0,0,.24),0 12px 22px rgba(3,45,96,.28)}
+  .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:28px}.detail-card{background:rgba(255,255,255,.9);border-radius:var(--round);padding:26px;box-shadow:var(--shadow);border-top:8px solid var(--cyan);transition:.28s}.detail-card.why{border-color:var(--purple)}.detail-card.warning{border-color:var(--red)}.detail-card h2{font:700 23px/1.2 'Poppins';color:var(--navy)}.detail-card h3{margin-top:14px;font:700 15px 'Poppins';color:var(--purple)}.detail-card p,.detail-card li{font-size:14px;line-height:1.48;color:var(--muted);font-weight:700}.detail-card p{margin-top:9px}.detail-card ul{margin:10px 0 0 19px}.detail-card li+li{margin-top:7px}.detail-card:hover{transform:translateY(-8px);box-shadow:var(--shadow-hover)}
+  .fact-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px}.fact{background:white;border-radius:17px;padding:20px;text-align:center;box-shadow:var(--shadow)}.fact strong{display:block;font:700 20px 'Poppins';color:var(--navy)}.fact span{display:block;margin-top:6px;font-size:12px;line-height:1.4;color:var(--muted);font-weight:800}.fact.danger strong{color:var(--red)}
+  .code-line{margin-top:14px;padding:14px 17px;border-radius:13px;background:var(--navy);color:white;font:600 13px/1.55 'JetBrains Mono';box-shadow:0 6px 0 rgba(3,30,62,.45)}
+  .visual-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin-top:38px}.visual-grid.two{grid-template-columns:repeat(2,1fr)}.visual-grid.four{grid-template-columns:repeat(4,1fr)}
+  .visual-card{min-height:320px;padding:42px 32px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:rgba(255,255,255,.9);border-radius:28px;border-top:11px solid var(--cyan);box-shadow:var(--shadow);transition:.28s}.visual-card:nth-child(2){border-top-color:var(--purple)}.visual-card:nth-child(3){border-top-color:var(--green)}.visual-card:nth-child(4){border-top-color:var(--amber)}.visual-card.danger{border-top-color:var(--red)}.visual-card:hover{transform:translateY(-8px);box-shadow:var(--shadow-hover)}
+  .visual-icon{width:104px;height:104px;margin-bottom:24px;border-radius:30px;display:grid;place-items:center;background:var(--sky-2);color:var(--navy);font:900 36px 'Poppins';box-shadow:inset 0 0 0 2px rgba(8,59,114,.08),0 8px 0 rgba(8,59,114,.1)}.visual-card.danger .visual-icon{background:var(--red-bg);color:var(--red)}
+  .visual-card h2,.visual-card h3{font:700 clamp(22px,2vw,31px)/1.13 'Poppins';color:var(--navy)}.visual-card p{margin-top:12px;max-width:340px;font-size:18px;line-height:1.35;color:var(--muted);font-weight:800}
+  .big-stat{font:700 clamp(38px,5vw,74px)/1 'Poppins';color:var(--navy);letter-spacing:-.04em}.big-stat.red{color:var(--red)}.big-stat.purple{color:var(--purple)}
+  .pill-cloud{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:16px;margin-top:30px}.pill{display:inline-flex;align-items:center;gap:9px;padding:14px 22px;border-radius:var(--pill);background:white;color:var(--navy);font-size:18px;font-weight:900;box-shadow:0 6px 0 rgba(8,59,114,.13),0 13px 24px rgba(25,83,122,.16)}.pill.primary{background:var(--purple);color:white}.pill.danger{background:var(--red);color:white}.pill.good{background:var(--green);color:white}
+  .arrow-row{display:grid;grid-template-columns:1fr 90px 1fr;gap:24px;align-items:center;margin-top:40px}.arrow{width:90px;height:90px;border-radius:50%;display:grid;place-items:center;background:var(--navy);color:white;font:900 42px 'Poppins';box-shadow:var(--shadow)}
+  .shield-carousel{position:relative;width:100%;overflow:hidden;scroll-snap-align:start;scroll-margin-top:78px}.shield-track{display:flex;align-items:stretch;will-change:transform;transition:transform .72s cubic-bezier(.65,0,.2,1)}.shield-slide{flex:0 0 100%;min-width:0;scroll-snap-align:none}
+  .shield-stepper{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin:28px 30px 0}.shield-stepper::before{content:"";position:absolute;left:10%;right:10%;top:29px;height:7px;border-radius:8px;background:linear-gradient(90deg,var(--purple),var(--cyan));z-index:0}.shield-step{position:relative;z-index:1;display:grid;justify-items:center;gap:8px;text-decoration:none;color:var(--navy);font-size:14px;font-weight:900;text-align:center}.shield-step span{width:64px;height:64px;border:7px solid white;border-radius:50%;display:grid;place-items:center;background:var(--navy);color:white;font:700 19px 'Poppins';box-shadow:var(--shadow)}.shield-step.current span{background:var(--purple)}.shield-step:not(.current):hover span{background:var(--cyan);transform:translateY(-4px)}.shield-step small{font-size:13px;color:var(--navy)}
+  .scope-note{margin:26px auto 0;padding:12px 22px;border-radius:var(--pill);background:rgba(255,255,255,.72);color:var(--muted);font-size:15px;font-weight:900;text-align:center}
+  .arch-shot{width:min(1080px,100%);margin:6px auto 0}.arch-shot img{display:block;width:100%;height:auto;border-radius:18px;box-shadow:0 8px 22px rgba(8,59,114,.16);cursor:zoom-in}
+  .arch-shot.is-open img{position:fixed;z-index:80;top:96px;left:50%;transform:translateX(-50%);width:auto;height:auto;max-width:min(94vw,1600px);max-height:calc(100vh - 120px);cursor:zoom-out;box-shadow:0 16px 40px rgba(8,59,114,.28)}
+  html.arch-open{overflow:hidden;scroll-snap-type:none}
+  html.arch-open::before{content:"";position:fixed;inset:0;z-index:70;background:rgba(8,30,55,.28)}
+  .grc-scene{min-height:calc(100vh - 68px);height:calc(100vh - 68px);margin-left:-38px;margin-right:-38px;width:calc(100% + 76px);padding:0;justify-content:stretch}
+  .grc-scene iframe{width:100%;height:100%;border:0;background:transparent;display:block}
+  .source{margin-top:24px;text-align:center;font-size:12px;font-weight:800;color:var(--muted)}.source a{color:var(--navy);text-decoration:none;border-bottom:1px solid var(--cyan)}
+  footer{text-align:center;color:var(--muted);font-size:11px;font-weight:700;padding-top:18px}
+  .bubble-card:hover,.risk-card:hover,.layer:hover,.takeaway:hover,.question-card:hover,.flow-card:hover{transform:translateY(-8px);box-shadow:var(--shadow-hover)}
+  @media(max-width:1050px){.hero-grid{grid-template-columns:1fr}.risk-grid{grid-template-columns:repeat(2,1fr)}.layers,.takeaways,.visual-grid,.visual-grid.four{grid-template-columns:repeat(2,1fr)}.arrow-row{grid-template-columns:1fr}.arrow{margin:auto;transform:rotate(90deg)}.nav a{padding:7px 9px;font-size:9px}}
+  @media(max-width:720px){html{scroll-snap-type:none}.topbar{padding:8px 10px;overflow-x:auto}.brand-copy{display:none}.nav{margin-left:0}.nav a{padding:7px 10px;font-size:9px}.page{padding:0 15px 42px}.scene{min-height:auto;padding:44px 0}.grc-scene{margin-left:-15px;margin-right:-15px;width:calc(100% + 30px);height:auto;min-height:80vh;padding:0}.grc-scene iframe{height:80vh}.risk-grid,.layers,.takeaways,.flow,.detail-grid,.fact-row,.visual-grid,.visual-grid.two,.visual-grid.four{grid-template-columns:1fr}.shield-stepper{grid-template-columns:repeat(2,1fr)}.shield-stepper::before{display:none}.flow::before{display:none}.title-row h1{font-size:36px}.section-ribbon{font-size:18px}.question-card{padding:26px 18px}.astro{display:none}#shift .title-row,#shift>.subtitle{padding-right:0}}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}body::before,.astro-hero{animation:none}}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark"><img src="data/advarra_logo.png" alt="Advarra" /></div>
+    <div class="brand-copy"><span class="brand-top">Salesforce Security</span><span class="brand-name">Attack-Path Hardening</span></div>
+  </div>
+  <nav class="nav" aria-label="Presentation sections">
+    <a href="#shift">Overview</a><a href="#architecture">Layers</a><a href="#crosswalk">GRC</a><a href="#mfa">Identity</a><a href="#reports">Reports</a><a href="#email-domain">Email</a><a href="#high-risk-ip">Network</a><a href="#password-flow">OAuth</a><a href="#eca">ECA</a><a href="#transaction">Shield</a><a href="#close">Summary</a>
+  </nav>
+</header>
+<main class="page">
+  <section class="scene" id="shift">
+    <img class="astro astro-hero" src="data/Agent_Astro_55443_Sunglasses_A_005_RGB.png" alt="" aria-hidden="true" />
+    <div class="title-row">
+      <h1>The concrete changes Salesforce made to harden Core</h1>
+      <svg class="shield" viewBox="0 0 24 24" fill="none"><path d="M12 2.5l7.5 3.2v5.6c0 4.8-3.2 8-7.5 9.7-4.3-1.7-7.5-4.9-7.5-9.7V5.7L12 2.5z" stroke="currentColor" stroke-width="1.7"/><path d="M8.7 12l2.1 2.1 4.6-4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </div>
+    <p class="subtitle">A technical walk-through of enforced MFA, phishing-resistant authentication for privileged users, report-export protections, OAuth retirement, and the move from Connected Apps to External Client Apps.</p>
+    <div class="hero-grid">
+      <div class="bubble-card">
+        <span class="bubble-label">The short version</span>
+        <h2>Security guidance → enforced platform behavior</h2>
+        <div class="pill-cloud"><span class="pill good">Stronger defaults</span><span class="pill danger">Legacy paths removed</span></div>
+      </div>
+      <div class="path" aria-label="Attack path">
+        <div class="path-step"><div class="path-num">1</div><div><b>Identity</b><span>Phishing and credential theft</span></div></div>
+        <div class="path-step"><div class="path-num">2</div><div><b>Authorization</b><span>OAuth grants and tokens</span></div></div>
+        <div class="path-step"><div class="path-num">3</div><div><b>API activity</b><span>Legitimate-looking access</span></div></div>
+        <div class="path-step"><div class="path-num">4</div><div><b>Exfiltration</b><span>Reports, records, and files</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="scene" id="architecture">
+    <div class="title-row">
+      <h1>Governance by design</h1>
+    </div>
+    <p class="subtitle">Built into the platform. Advarra inherits the controls, configures them, and adds the advanced ones where you need them.</p>
+    <figure class="arch-shot">
+      <img src="data/security%20architecture.png" alt="Security is built into every layer of our architecture: Foundationals, Configurables, and Enhanceables." role="button" tabindex="0" aria-expanded="false" />
+    </figure>
+  </section>
+
+  <section class="scene grc-scene" id="crosswalk">
+    <iframe src="advarra-nist-800-53-crosswalk.html?embed=1" title="Advarra NIST 800-53 crosswalk for GRC"></iframe>
+  </section>
+
+  <section class="scene" id="mfa">
+    <div class="section-ribbon">Change 1 · MFA becomes enforced platform behavior</div>
+    <div class="visual-grid">
+      <article class="visual-card"><div class="visual-icon">✓</div><h2>Every employee UI login</h2><p>Direct and SSO</p></article>
+      <article class="visual-card"><div class="visual-icon">⛨</div><h2>Controls locked</h2><p>No admin opt-out</p></article>
+      <article class="visual-card"><div class="visual-icon">SSO</div><h2>No blanket exemption</h2><p>Assurance must be proven</p></article>
+    </div>
+    <div class="pill-cloud"><span class="pill danger">Password-only access closed</span><span class="pill">Production + paid sandboxes</span></div>
+    <div class="source">Official: <a href="https://help.salesforce.com/s/articleView?id=005321561&type=1">MFA Enforcement for All Employee Users</a></div>
+  </section>
+
+  <section class="scene" id="privileged">
+    <div class="section-ribbon purple">Core change 2 · Phishing-resistant MFA is mandatory for privileged users</div>
+    <div class="visual-grid">
+      <article class="visual-card"><div class="visual-icon">⚿</div><h2>FIDO2 / WebAuthn</h2><p>Passkeys, hardware keys, biometrics</p></article>
+      <article class="visual-card"><div class="visual-icon">◎</div><h2>Origin-bound</h2><p>Stops real-time phishing relay</p></article>
+      <article class="visual-card danger"><div class="visual-icon">×</div><h2>OTP isn’t enough</h2><p>TOTP, SMS, email, or push alone</p></article>
+    </div>
+    <div class="pill-cloud"><span class="pill primary">System Administrator</span><span class="pill">Modify / View All Data</span><span class="pill">Customize Application</span><span class="pill">Author Apex</span></div>
+    <div class="source">Official: <a href="https://help.salesforce.com/s/articleView?id=005321563&type=1">Phishing-Resistant MFA for Privileged Users</a></div>
+  </section>
+
+  <section class="scene" id="reports">
+    <div class="section-ribbon">Changes 3–4 · Re-authenticate at the point of export</div>
+    <div class="visual-grid">
+      <article class="visual-card"><div class="visual-icon">⇩</div><h2>Export or print</h2><p>The sensitive action</p></article>
+      <article class="visual-card"><div class="visual-icon">⌱</div><h2>Periodic</h2><p>1–120 minute window</p></article>
+      <article class="visual-card"><div class="visual-icon">≈</div><h2>Adaptive</h2><p>Behavior deviates from baseline</p></article>
+    </div>
+    <div class="pill-cloud"><span class="pill danger">Fresh challenge</span><span class="pill">Not ordinary report viewing</span><span class="pill">Metadata—not report content</span></div>
+    <div class="source">Official: <a href="https://help.salesforce.com/s/articleView?id=005321566&type=1">Step-Up for Report Actions</a> · <a href="https://help.salesforce.com/s/articleView?id=005321567&type=1">Step-Up for Anomalous Report Export</a></div>
+  </section>
+
+  <section class="scene" id="email-domain">
+    <div class="section-ribbon purple">Change 5 · Unverified sending domains can no longer send as your brand</div>
+    <div class="visual-grid">
+      <article class="visual-card"><div class="visual-icon">@</div><h2>Sending domain</h2><p>Must match the From address</p></article>
+      <article class="visual-card"><div class="visual-icon">DNS</div><h2>Prove ownership</h2><p>DKIM or Authorized Domain</p></article>
+      <article class="visual-card danger"><div class="visual-icon">×</div><h2>Unverified?</h2><p>Fail or substitute sender</p></article>
+    </div>
+    <div class="pill-cloud"><span class="pill">Email Composer</span><span class="pill">Apex</span><span class="pill">Flow</span><span class="pill">Org-wide addresses</span><span class="pill">System email</span></div>
+    <div class="source">Official: <a href="https://help.salesforce.com/s/articleView?id=xcloud.security_email_verification_requirements.htm">Requirements to Send Email from Salesforce</a> · <a href="https://help.salesforce.com/s/articleView?id=xcloud.security_user_email_verification_domain_auth.htm">Verify Your Email-Sending Domains</a></div>
+  </section>
+
+  <section class="scene" id="high-risk-ip">
+    <div class="section-ribbon">Change 6 · High-risk Connected App and API traffic triggers containment</div>
+    <div class="visual-grid">
+      <article class="visual-card"><div class="visual-icon">◉</div><h2>Detect</h2><p>Proxy · VPN · high-risk IP</p></article>
+      <article class="visual-card danger"><div class="visual-icon">⛔</div><h2>Freeze + block</h2><p>Contain the identity</p></article>
+      <article class="visual-card"><div class="visual-icon">↻</div><h2>Revoke tokens</h2><p>Remove persistence</p></article>
+    </div>
+    <div class="pill-cloud"><span class="pill primary">Connected App + API traffic</span><span class="pill">Effective April 24, 2026</span></div>
+    <div class="source">Official: <a href="https://help.salesforce.com/s/articleView?id=005318944&type=1">Preventing Connections from Anonymizing VPNs, Proxies and High-Risk IP Addresses</a></div>
+  </section>
+
+  <section class="scene" id="password-flow">
+    <div class="section-ribbon purple">Change 7 · The OAuth username-password flow has an end date</div>
+    <div class="visual-grid">
+      <article class="visual-card"><div class="big-stat">’23</div><h2>Blocked by default</h2><p>New orgs</p></article>
+      <article class="visual-card danger"><div class="big-stat red">’27</div><h2>Support ends</h2><p>Integrations break</p></article>
+      <article class="visual-card"><div class="visual-icon">→</div><h2>Migrate now</h2><p>PKCE or client credentials</p></article>
+    </div>
+    <div class="pill-cloud"><span class="pill danger">No human passwords as integration secrets</span></div>
+    <div class="source">Official: <a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_security_username_password_flow_retirement.htm&release=260&type=5">Username-Password Flow Retirement</a></div>
+  </section>
+
+  <section class="scene" id="eca">
+    <div class="section-ribbon">Change 8 · New Connected App creation is disabled by default</div>
+    <div class="arrow-row">
+      <article class="visual-card danger"><div class="visual-icon">×</div><h2>Connected Apps</h2><p>Net-new creation disabled</p></article>
+      <div class="arrow" aria-hidden="true">→</div>
+      <article class="visual-card"><div class="visual-icon">ECA</div><h2>External Client Apps</h2><p>The forward architecture</p></article>
+    </div>
+    <div class="pill-cloud"><span class="pill">Developer definition</span><span class="pill">Admin policy</span><span class="pill">Metadata lifecycle</span><span class="pill">2GP packaging</span></div>
+    <div class="scope-note">Existing and packaged Connected Apps continue to run.</div>
+    <div class="source">Official: <a href="https://help.salesforce.com/s/articleView?id=connected_app_overview.htm">Connected Apps</a> · <a href="https://help.salesforce.com/s/articleView?id=xcloud.external_client_apps.htm">External Client Apps</a></div>
+  </section>
+
+  <section class="scene" id="oauth-controls">
+    <div class="section-ribbon purple">Change 9 · OAuth policy is becoming narrower and harder to weaken</div>
+    <div class="layers">
+      <article class="layer"><div class="layer-num">⌁</div><h3>Least privilege</h3><p>Narrow scopes</p></article>
+      <article class="layer"><div class="layer-num">✓</div><h3>Admin approved</h3><p>Pre-authorization</p></article>
+      <article class="layer"><div class="layer-num">↻</div><h3>Replay resistant</h3><p>PKCE + rotation</p></article>
+      <article class="layer"><div class="layer-num">⛨</div><h3>Locked controls</h3><p>Harder to weaken</p></article>
+      <article class="layer"><div class="layer-num">◎</div><h3>Network aware</h3><p>IP context</p></article>
+    </div>
+    <div class="pill-cloud"><span class="pill primary">The token is a security boundary</span></div>
+    <div class="source">Official: <a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_security_auth_and_identity.htm&release=260&type=5">Spring ’26 Identity and Access Management Changes</a></div>
+  </section>
+
+  <div class="shield-carousel" id="shield">
+  <div class="shield-track">
+  <section class="scene shield-slide" id="transaction">
+    <div class="section-ribbon purple">Finally: Shield Event Monitoring · A significant step forward in detection and response</div>
+    <div class="shield-stepper" aria-label="Shield Event Monitoring sections">
+      <div class="shield-step current" aria-current="step"><span>1</span><small>Transaction Security</small></div>
+      <a class="shield-step" href="#shield-visibility"><span>2</span><small>Event Log Objects</small></a>
+      <a class="shield-step" href="#shield-analytics"><span>3</span><small>ELO Analytics</small></a>
+      <a class="shield-step" href="#shield-response"><span>4</span><small>Coverage &amp; Response</small></a>
+    </div>
+    <div class="visual-grid">
+      <article class="visual-card"><div class="big-stat">10K+</div><h2>Large export</h2><p>Default threshold</p></article>
+      <article class="visual-card"><div class="visual-icon">MFA</div><h2>Step up</h2><p>Preventive response</p></article>
+      <article class="visual-card"><div class="visual-icon">⚙</div><h2>Separate admin right</h2><p>Modify TSP permission</p></article>
+    </div>
+    <div class="pill-cloud"><span class="pill good">Secure by default</span><span class="pill">Shield / Event Monitoring</span></div>
+    <div class="source">Official: <a href="https://help.salesforce.com/s/articleView?id=005321565&type=1">Transaction Security Policy Enhancements</a> · Requires Shield or Event Monitoring</div>
+  </section>
+
+  <section class="scene shield-slide" id="shield-visibility">
+    <div class="section-ribbon">The headliner · Event Log Objects make log data directly queryable</div>
+    <div class="shield-stepper" aria-label="Shield Event Monitoring sections">
+      <a class="shield-step" href="#transaction"><span>1</span><small>Transaction Security</small></a>
+      <div class="shield-step current" aria-current="step"><span>2</span><small>Event Log Objects</small></div>
+      <a class="shield-step" href="#shield-analytics"><span>3</span><small>ELO Analytics</small></a>
+      <a class="shield-step" href="#shield-response"><span>4</span><small>Coverage &amp; Response</small></a>
+    </div>
+    <div class="visual-grid">
+      <article class="visual-card"><div class="visual-icon">SOQL</div><h2>Native query</h2><p>No CSV prerequisite</p></article>
+      <article class="visual-card"><div class="big-stat purple">30</div><h2>Days retained</h2><p>Available at go-live</p></article>
+      <article class="visual-card"><div class="big-stat">15</div><h2>Day query window</h2><p>Per API request</p></article>
+    </div>
+    <div class="pill-cloud"><span class="pill">ELF = batch CSV</span><span class="pill primary">ELO = queryable objects</span><span class="pill">RTEM = event stream</span></div>
+    <div class="source">Official: <a href="https://help.salesforce.com/s/articleView?id=xcloud.real_time_em_event_log_objects.htm">Store and Query Log Data with Event Log Objects</a></div>
+  </section>
+
+  <section class="scene shield-slide" id="shield-analytics">
+    <div class="section-ribbon purple">Event Log Object Analytics · Useful dashboards without custom ingestion</div>
+    <div class="shield-stepper" aria-label="Shield Event Monitoring sections">
+      <a class="shield-step" href="#transaction"><span>1</span><small>Transaction Security</small></a>
+      <a class="shield-step" href="#shield-visibility"><span>2</span><small>Event Log Objects</small></a>
+      <div class="shield-step current" aria-current="step"><span>3</span><small>ELO Analytics</small></div>
+      <a class="shield-step" href="#shield-response"><span>4</span><small>Coverage &amp; Response</small></a>
+    </div>
+    <div class="visual-grid">
+      <article class="visual-card"><div class="visual-icon">!</div><h2>Threats &amp; Access</h2><p>Identity · sessions · exfiltration</p></article>
+      <article class="visual-card"><div class="visual-icon">↗</div><h2>Performance &amp; Health</h2><p>Lightning · Apex · APIs</p></article>
+      <article class="visual-card"><div class="visual-icon">UX</div><h2>Behavior &amp; Adoption</h2><p>Journeys · usage · friction</p></article>
+    </div>
+    <div class="pill-cloud"><span class="pill primary">CRM Analytics templates</span><span class="pill">Every viewer needs explicit access</span></div>
+    <div class="source">Official: <a href="https://help.salesforce.com/s/articleView?id=xcloud.real_time_em_elo_dashboards.htm">Event Log Objects Analytics</a></div>
+  </section>
+
+  <section class="scene shield-slide" id="shield-response">
+    <div class="section-ribbon">More coverage · Privilege, identity context, and file protection</div>
+    <div class="shield-stepper" aria-label="Shield Event Monitoring sections">
+      <a class="shield-step" href="#transaction"><span>1</span><small>Transaction Security</small></a>
+      <a class="shield-step" href="#shield-visibility"><span>2</span><small>Event Log Objects</small></a>
+      <a class="shield-step" href="#shield-analytics"><span>3</span><small>ELO Analytics</small></a>
+      <div class="shield-step current" aria-current="step"><span>4</span><small>Coverage &amp; Response</small></div>
+    </div>
+    <div class="layers">
+      <article class="layer"><div class="layer-num">⚙</div><h3>Permission updates</h3><p>Privilege changes</p></article>
+      <article class="layer"><div class="layer-num">ID</div><h3>Identity context</h3><p>Profile + role</p></article>
+      <article class="layer"><div class="layer-num">⇩</div><h3>File protection</h3><p>Notify + block</p></article>
+      <article class="layer"><div class="layer-num">▣</div><h3>Default storage</h3><p>Evidence retained</p></article>
+      <article class="layer"><div class="layer-num">▶</div><h3>Action paths</h3><p>Flow + TSP + stream</p></article>
+    </div>
+    <div class="pill-cloud"><span class="pill good">Detect</span><span class="pill primary">Investigate</span><span class="pill danger">Respond</span></div>
+    <div class="source">Official: <a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_security_em.htm&release=260&type=5">Spring ’26 Event Monitoring Changes</a> · <a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_security_em_automatic_storage_real-time_events.htm&release=260&type=5">Automatic Storage</a></div>
+  </section>
+  </div>
+  </div>
+
+  <section class="scene" id="close">
+    <div class="section-ribbon purple">The result · secure defaults at multiple points in the attack path</div>
+    <div class="takeaways">
+      <div class="takeaway"><strong>MFA enforced</strong><span>Every employee login</span></div>
+      <div class="takeaway"><strong>Phishing resistant</strong><span>Privileged access</span></div>
+      <div class="takeaway"><strong>Exports challenged</strong><span>Session re-bound</span></div>
+      <div class="takeaway"><strong>Legacy OAuth removed</strong><span>Winter ’27</span></div>
+      <div class="takeaway"><strong>Shield operationalized</strong><span>Detect → respond</span></div>
+    </div>
+    <div class="question-card">
+      <img class="astro astro-close" src="data/Agent_Astro_Sunglasses_A_007.png" alt="" aria-hidden="true" />
+      <h2>Which migration or enforcement edge deserves a deeper review?</h2>
+      <div class="choice-row">
+        <span class="choice">Privileged MFA</span><span class="choice">Report exports</span><span class="choice">Username-password flows</span><span class="choice">Connected App inventory</span>
+      </div>
+    </div>
+    <footer>Discussion aid · Grounded in Salesforce Security-Related Product Updates and Spring ’26 release documentation · Verify instance-specific rollout and licensing.</footer>
+  </section>
+</main>
+<script>
+  const progress=document.getElementById('progress');
+  const updateProgress=()=>{const h=document.documentElement;const max=h.scrollHeight-h.clientHeight;progress.style.width=(max?100*h.scrollTop/max:0)+'%'};
+  document.addEventListener('scroll',updateProgress,{passive:true});updateProgress();
+  const navLinks=[...document.querySelectorAll('.nav a')];
+  const navSections=[
+    ['shift','#shift'],['architecture','#architecture'],['crosswalk','#crosswalk'],['mfa','#mfa'],['privileged','#mfa'],['reports','#reports'],
+    ['email-domain','#email-domain'],['high-risk-ip','#high-risk-ip'],
+    ['password-flow','#password-flow'],['eca','#eca'],['oauth-controls','#password-flow'],
+    ['shield','#transaction'],['close','#close']
+  ].map(([id,nav])=>({element:document.getElementById(id),nav}));
+  const setActiveNav=href=>navLinks.forEach(link=>{
+    const active=link.getAttribute('href')===href;
+    link.classList.toggle('active',active);
+    if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
+  });
+  let navFrame;
+  const updateActiveNav=()=>{
+    navFrame=null;
+    const focusY=window.innerHeight*.42;
+    const current=navSections.find(({element})=>{
+      const rect=element.getBoundingClientRect();
+      return rect.top<=focusY&&rect.bottom>focusY;
+    });
+    if(current)setActiveNav(current.nav);
+  };
+  document.addEventListener('scroll',()=>{
+    if(!navFrame)navFrame=requestAnimationFrame(updateActiveNav);
+  },{passive:true});
+  window.addEventListener('resize',updateActiveNav);
+  updateActiveNav();
+  const shieldCarousel=document.querySelector('.shield-carousel');
+  const shieldTrack=document.querySelector('.shield-track');
+  const shieldSlides=[...document.querySelectorAll('.shield-slide')];
+  const shieldIds=shieldSlides.map(slide=>slide.id);
+  const showShieldSlide=id=>{
+    const index=shieldIds.indexOf(id);
+    if(index<0)return;
+    shieldTrack.style.transform=`translateX(-${index*100}%)`;
+    history.replaceState(null,'',`#${id}`);
+  };
+  document.querySelectorAll('a[href^="#"]').forEach(link=>{
+    const id=link.getAttribute('href').slice(1);
+    if(!shieldIds.includes(id))return;
+    link.addEventListener('click',event=>{
+      event.preventDefault();
+      showShieldSlide(id);
+      if(!link.classList.contains('shield-step'))shieldCarousel.scrollIntoView({behavior:'smooth',block:'start'});
+    });
+  });
+  if(shieldIds.includes(location.hash.slice(1)))showShieldSlide(location.hash.slice(1));
+  const archShot=document.querySelector('.arch-shot');
+  const archImg=archShot&&archShot.querySelector('img');
+  const setArchOpen=open=>{
+    if(!archShot)return;
+    if(open)archShot.style.minHeight=archShot.offsetHeight+'px';
+    else archShot.style.minHeight='';
+    archShot.classList.toggle('is-open',open);
+    document.documentElement.classList.toggle('arch-open',open);
+    if(archImg)archImg.setAttribute('aria-expanded',open?'true':'false');
+  };
+  if(archImg){
+    archImg.addEventListener('click',event=>{
+      event.preventDefault();
+      event.stopPropagation();
+      setArchOpen(!archShot.classList.contains('is-open'));
+    });
+    archImg.addEventListener('keydown',event=>{
+      if(event.key!=='Enter'&&event.key!==' ')return;
+      event.preventDefault();
+      setArchOpen(!archShot.classList.contains('is-open'));
+    });
+  }
+  document.addEventListener('click',event=>{
+    if(!archShot||!archShot.classList.contains('is-open'))return;
+    if(event.target===archImg)return;
+    setArchOpen(false);
+  },true);
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape')setArchOpen(false);
+    if(!document.documentElement.classList.contains('arch-open'))return;
+    if(['ArrowDown','ArrowUp','PageDown','PageUp',' ','Spacebar'].includes(event.key))event.preventDefault();
+  });
+  const blockArchScroll=event=>{
+    if(document.documentElement.classList.contains('arch-open'))event.preventDefault();
+  };
+  window.addEventListener('wheel',blockArchScroll,{passive:false});
+  window.addEventListener('touchmove',blockArchScroll,{passive:false});
+</script>
+</body>
+</html>
